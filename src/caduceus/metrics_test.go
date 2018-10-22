@@ -20,6 +20,7 @@ package main
 import (
 	"testing"
 
+	"github.com/Comcast/webpa-common/xmetrics"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -29,4 +30,9 @@ func TestMetrics(t *testing.T) {
 	m := Metrics()
 
 	assert.NotNil(m)
+}
+
+// NewTestOutboundMeasures creates an OutboundMeasures appropriate for a testing environment
+func NewTestOutboundMeasures() OutboundMeasures {
+	return NewOutboundMeasures(xmetrics.MustNewRegistry(nil, Metrics))
 }

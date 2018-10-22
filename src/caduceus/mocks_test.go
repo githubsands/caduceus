@@ -125,6 +125,24 @@ func (m *mockGauge) With(labelValues ...string) metrics.Gauge {
 	return args.Get(0).(metrics.Gauge)
 }
 
+// mockHistogram provides the mock implementation of the metrics.Histogram object
+type mockHistogram struct {
+	mock.Mock
+}
+
+func (m *mockGauge) Add(delta float64) {
+	m.Called(delta)
+}
+
+func (m *mockGauge) Set(value float64) {
+	m.Called(value)
+}
+
+func (m *mockGauge) With(labelValues ...string) metrics.Gauge {
+	args := m.Called(labelValues)
+	return args.Get(0).(metrics.Gauge)
+}
+
 // mockCaduceusMetricsRegistry provides the mock implementation of the
 // CaduceusMetricsRegistry  object
 type mockCaduceusMetricsRegistry struct {
@@ -139,4 +157,9 @@ func (m *mockCaduceusMetricsRegistry) NewCounter(name string) metrics.Counter {
 func (m *mockCaduceusMetricsRegistry) NewGauge(name string) metrics.Gauge {
 	args := m.Called(name)
 	return args.Get(0).(metrics.Gauge)
+}
+
+func (m *mockCaduceusMetricsRegistry) NewHistogram(name string) metrics.Histogram {
+	args := m.Called(name)
+	return args.Get(0).(metrics.Histogram)
 }

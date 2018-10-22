@@ -30,6 +30,7 @@ import (
 
 // SenderWrapperFactory configures the CaduceusSenderWrapper for creation
 type SenderWrapperFactory struct {
+	Sender func(*http.Request) (*http.Response, error)
 	// The number of workers to assign to each OutboundSender created.
 	NumWorkersPerSender int
 
@@ -49,7 +50,7 @@ type SenderWrapperFactory struct {
 	// shutting them down and cleaning up the resources associated with them.
 	Linger time.Duration
 
-	// Metrics registry.
+	// Metrics registry
 	MetricsRegistry CaduceusMetricsRegistry
 
 	// The metrics counter for content-type
@@ -58,11 +59,13 @@ type SenderWrapperFactory struct {
 	// The metrics counter for dropped messages due to invalid payloads
 	DroppedMsgCounter metrics.Counter
 
+	// Function for creating genatering a outboundMeasuresFunc
+	OutboundMeasuresFunc OutboundMeasuresFunc
+
 	// The logger implementation to share with OutboundSenders.
 	Logger log.Logger
 
-	// The http client Do() function to share with OutboundSenders.
-	Sender func(*http.Request) (*http.Response, error)
+	Transport *http.Transport
 }
 
 type SenderWrapper interface {
@@ -84,15 +87,17 @@ type CaduceusSenderWrapper struct {
 	mutex               sync.RWMutex
 	senders             map[string]OutboundSender
 	metricsRegistry     CaduceusMetricsRegistry
+	outboundMeasures    OutboundMeasures
 	wg                  sync.WaitGroup
 	shutdown            chan struct{}
+	transport           *http.Transport
 }
 
 // New produces a new SenderWrapper implemented by CaduceusSenderWrapper
 // based on the factory configuration.
 func (swf SenderWrapperFactory) New() (sw SenderWrapper, err error) {
 	caduceusSenderWrapper := &CaduceusSenderWrapper{
-		sender:              swf.Sender,
+		//	sender:              swf.sender,
 		numWorkersPerSender: swf.NumWorkersPerSender,
 		queueSizePerSender:  swf.QueueSizePerSender,
 		cutOffPeriod:        swf.CutOffPeriod,
@@ -109,6 +114,7 @@ func (swf SenderWrapperFactory) New() (sw SenderWrapper, err error) {
 
 	caduceusSenderWrapper.senders = make(map[string]OutboundSender)
 	caduceusSenderWrapper.shutdown = make(chan struct{})
+	caduceusSenderWrapper.outboundMeasures = swf.OutboundMeasuresFunc(caduceusSenderWrapper.metricsRegistry)
 
 	caduceusSenderWrapper.wg.Add(1)
 	go undertaker(caduceusSenderWrapper)
@@ -131,6 +137,7 @@ func (sw *CaduceusSenderWrapper) Update(list []webhook.W) {
 		DeliveryRetries:  sw.deliveryRetries,
 		DeliveryInterval: sw.deliveryInterval,
 		Logger:           sw.logger,
+		Transport:        sw.transport,
 	}
 
 	ids := make([]struct {

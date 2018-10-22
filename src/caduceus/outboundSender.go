@@ -107,6 +107,11 @@ type OutboundSenderFactory struct {
 	// Metrics registry.
 	MetricsRegistry CaduceusMetricsRegistry
 
+	// Holds promtheus outbound measures
+	OutboundMeasures
+
+	Transport *http.Transport
+
 	// The logger to use.
 	Logger log.Logger
 }
@@ -120,10 +125,11 @@ type OutboundSender interface {
 
 // CaduceusOutboundSender is the outbound sender object.
 type CaduceusOutboundSender struct {
-	id                       string
-	listener                 webhook.W
-	deliverUntil             time.Time
-	dropUntil                time.Time
+	id           string
+	listener     webhook.W
+	deliverUntil time.Time
+	dropUntil    time.Time
+	// Note that this sender abides by transport and Round Tripper signatures
 	sender                   func(*http.Request) (*http.Response, error)
 	secret                   []byte
 	secretChan               chan []byte
@@ -142,12 +148,15 @@ type CaduceusOutboundSender struct {
 	droppedInvalidConfig     metrics.Counter
 	cutOffCounter            metrics.Counter
 	queueDepthGauge          metrics.Gauge
-	wg                       sync.WaitGroup
-	cutOffPeriod             time.Duration
-	failureMsg               FailureMessage
-	logger                   log.Logger
-	mutex                    sync.RWMutex
-	shutdownChan             chan bool
+	// Holds prometheus outbound metrics
+	outboundMeasures OutboundMeasures
+	wg               sync.WaitGroup
+	cutOffPeriod     time.Duration
+	failureMsg       FailureMessage
+	logger           log.Logger
+	mutex            sync.RWMutex
+	shutdownChan     chan bool
+	transport        *http.Transport
 }
 
 // New creates a new OutboundSender object from the factory, or returns an error.
@@ -172,8 +181,9 @@ func (osf OutboundSenderFactory) New() (obs OutboundSender, err error) {
 	}
 
 	caduceusOutboundSender := &CaduceusOutboundSender{
-		id:               osf.Listener.Config.URL,
-		listener:         osf.Listener,
+		id:       osf.Listener.Config.URL,
+		listener: osf.Listener,
+		// cascades into senderWrapperFactory
 		sender:           osf.Sender,
 		secretChan:       make(chan []byte, 10),
 		queueSize:        osf.QueueSize,
@@ -190,6 +200,7 @@ func (osf OutboundSenderFactory) New() (obs OutboundSender, err error) {
 			Workers:      osf.NumWorkers,
 		},
 		shutdownChan: make(chan bool, 10),
+		transport:    osf.Transport,
 	}
 
 	// Don't share the secret with others when there is an error.
@@ -222,6 +233,8 @@ func (osf OutboundSenderFactory) New() (obs OutboundSender, err error) {
 	// Give us some head room so that we don't block when we get near the
 	// completely full point.
 	caduceusOutboundSender.queue = make(chan *wrp.Message, osf.QueueSize)
+
+	caduceusOutboundSender.outboundMeasures = osf.OutboundMeasures
 
 	if err = caduceusOutboundSender.Update(osf.Listener); nil != err {
 		return
@@ -559,8 +572,9 @@ func (obs *CaduceusOutboundSender) worker(id int) {
 						event = match[1]
 					}
 
-					// Send it
-					resp, err := xhttp.RetryTransactor(retryOptions, obs.sender)(req)
+					// Decorate and Send it
+					roundTripper := NewOutboundRoundTripper(obs.outboundMeasures, retryOptions, obs)
+					resp, err := roundTripper.RoundTrip(req)
 					if nil != err {
 						// Report failure
 						obs.getCounter(obs.deliveryCounter, -1).With("event", event).Add(1.0)
@@ -600,6 +614,10 @@ func (obs *CaduceusOutboundSender) worker(id int) {
 			obs.droppedCutoffCounter.Add(1.0)
 		}
 	}
+}
+
+func (obs *CaduceusOutboundSender) updateTransport() *http.Transport {
+	return obs.transport
 }
 
 // queueOverflow handles the logic of what to do when a queue overflows
