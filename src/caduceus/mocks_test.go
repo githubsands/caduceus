@@ -24,6 +24,7 @@ import (
 	"github.com/Comcast/webpa-common/webhook"
 	"github.com/Comcast/webpa-common/wrp"
 	"github.com/go-kit/kit/metrics"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -154,12 +155,22 @@ func (m *mockCaduceusMetricsRegistry) NewCounter(name string) metrics.Counter {
 	return args.Get(0).(metrics.Counter)
 }
 
+func (m *mockCaduceusMetricsRegistry) NewCounterVec(name string) *prometheus.CounterVec {
+	args := m.Called(name)
+	return args.Get(0).(*prometheus.CounterVec)
+}
+
 func (m *mockCaduceusMetricsRegistry) NewGauge(name string) metrics.Gauge {
 	args := m.Called(name)
 	return args.Get(0).(metrics.Gauge)
 }
 
 func (m *mockCaduceusMetricsRegistry) NewHistogram(name string) metrics.Histogram {
+	args := m.Called(name)
+	return args.Get(0).(metrics.Histogram)
+}
+
+func (m *mockCaduceusMetricsRegistry) NewHistogramVec(name string) *prometheus.Histogram {
 	args := m.Called(name)
 	return args.Get(0).(metrics.Histogram)
 }
