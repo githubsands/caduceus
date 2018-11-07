@@ -131,18 +131,11 @@ type mockHistogram struct {
 	mock.Mock
 }
 
-func (m *mockGauge) Add(delta float64) {
-	m.Called(delta)
-}
-
-func (m *mockGauge) Set(value float64) {
-	m.Called(value)
-}
-
-func (m *mockGauge) With(labelValues ...string) metrics.Gauge {
-	args := m.Called(labelValues)
-	return args.Get(0).(metrics.Gauge)
-}
+// number of observations, sum of observed values, ---> allowing the calculation of the observed values.
+// is inherently a counter
+//
+// rate(http_request_duration_seconds_sum[5m])
+// rate(http_request_duration_seconds_count[5m])
 
 // mockCaduceusMetricsRegistry provides the mock implementation of the
 // CaduceusMetricsRegistry  object
@@ -165,12 +158,16 @@ func (m *mockCaduceusMetricsRegistry) NewGauge(name string) metrics.Gauge {
 	return args.Get(0).(metrics.Gauge)
 }
 
-func (m *mockCaduceusMetricsRegistry) NewHistogram(name string) metrics.Histogram {
+func (m *mockCaduceusMetricsRegistry) NewHistogram(name string) *prometheus.Histogram {
 	args := m.Called(name)
-	return args.Get(0).(metrics.Histogram)
+	return args.Get(0).(*prometheus.Histogram)
 }
 
-func (m *mockCaduceusMetricsRegistry) NewHistogramVec(name string) *prometheus.Histogram {
+func (m *mockCaduceusMetricsRegistry) NewHistogramVec(name string) *prometheus.HistogramVec {
 	args := m.Called(name)
-	return args.Get(0).(metrics.Histogram)
+	return args.Get(0).(*prometheus.HistogramVec)
+}
+func (m *mockCaduceusMetricsRegistry) NewHistogramVecEx(namespace, subsystem, name string) *prometheus.HistogramVec {
+	args := m.Called(name)
+	return args.Get(0).(*prometheus.HistogramVec)
 }

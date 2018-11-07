@@ -17,6 +17,11 @@
 package main
 
 import (
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"testing"
+
 	"github.com/Comcast/webpa-common/logging"
 	"github.com/Comcast/webpa-common/secure"
 	"github.com/Comcast/webpa-common/secure/handler"
@@ -25,10 +30,6 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"net/http"
-	"net/http/httptest"
-	"os"
-	"testing"
 )
 
 func TestMain(m *testing.M) {
@@ -53,6 +54,8 @@ func TestMuxServerConfig(t *testing.T) {
 
 	fakeQueueDepth := new(mockGauge)
 	fakeQueueDepth.On("Add", mock.AnythingOfType("float64")).Return().Times(2)
+
+	fakeRequestDuration := new(mockHistogram)
 
 	serverWrapper := &ServerHandler{
 		Logger:                   logger,

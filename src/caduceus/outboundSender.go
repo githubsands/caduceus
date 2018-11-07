@@ -573,7 +573,7 @@ func (obs *CaduceusOutboundSender) worker(id int) {
 					}
 
 					// Decorate and Send it
-					roundTripper := NewOutboundRoundTripper(obs.outboundMeasures, retryOptions, obs)
+					roundTripper := NewOutboundRoundTripper(retryOptions, obs)
 					resp, err := roundTripper.RoundTrip(req)
 					if nil != err {
 						// Report failure

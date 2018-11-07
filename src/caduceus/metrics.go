@@ -91,6 +91,9 @@ func Metrics() []xmetrics.Metric {
 	}
 }
 
+type OutboundMeasuring interface {
+}
+
 // OutboundMeasures holds different prometheus outbound measurements.
 //
 // Future prometheus measurements should be added here.
@@ -130,7 +133,7 @@ func InstrumentOutboundDuration(obs prometheus.Observer, next http.RoundTripper)
 }
 
 // OutboundTripperDecorator decorates a transport to record outboundrequest durations.
-// Decorates a round tripper (or caduceus terminology: CaduceusOutboundSender's sender) to take metrics of otbound requests.
-func NewOutboundRoundTripper(om OutboundMeasures, r xhttp.RetryOptions, obs *CaduceusOutboundSender) http.RoundTripper {
-	return promhttp.RoundTripperFunc(xhttp.RetryTransactor(r, InstrumentOutboundDuration(om.RequestDuration, obs.updateTransport())))
+// Decorates a round tripper to take metrics of outbound requests.
+func NewOutboundRoundTripper(r xhttp.RetryOptions, obs *CaduceusOutboundSender) http.RoundTripper {
+	return promhttp.RoundTripperFunc(xhttp.RetryTransactor(r, InstrumentOutboundDuration(obs.outboundMeasures.RequestDuration, obs.updateTransport())))
 }
