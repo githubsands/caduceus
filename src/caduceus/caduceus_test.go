@@ -55,8 +55,6 @@ func TestMuxServerConfig(t *testing.T) {
 	fakeQueueDepth := new(mockGauge)
 	fakeQueueDepth.On("Add", mock.AnythingOfType("float64")).Return().Times(2)
 
-	fakeRequestDuration := new(mockHistogram)
-
 	serverWrapper := &ServerHandler{
 		Logger:                   logger,
 		caduceusHandler:          fakeHandler,

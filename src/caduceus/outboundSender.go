@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"crypto/hmac"
 	"crypto/sha1"
+	"crypto/tls"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -616,10 +617,6 @@ func (obs *CaduceusOutboundSender) worker(id int) {
 	}
 }
 
-func (obs *CaduceusOutboundSender) updateTransport() *http.Transport {
-	return obs.transport
-}
-
 // queueOverflow handles the logic of what to do when a queue overflows
 func (obs *CaduceusOutboundSender) queueOverflow() {
 	obs.mutex.Lock()
@@ -683,5 +680,14 @@ func (obs *CaduceusOutboundSender) queueOverflow() {
 		} else {
 			errorLog.Log(logging.MessageKey(), "No cut-off notification URL specified", "for", obs.id)
 		}
+	}
+}
+
+func (obs *CaduceusOutboundSender) updateTransport() *http.Transport {
+	return &http.Transport{
+		TLSClientConfig:       &tls.Config{InsecureSkipVerify: true},
+		MaxIdleConnsPerHost:   0,
+		ResponseHeaderTimeout: 0,
+		IdleConnTimeout:       0,
 	}
 }
