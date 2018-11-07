@@ -133,7 +133,6 @@ func InstrumentOutboundDuration(obs prometheus.Observer, next http.RoundTripper)
 }
 
 // OutboundTripperDecorator decorates a transport to record outboundrequest durations.
-// Decorates a round tripper to take metrics of outbound requests.
 func NewOutboundRoundTripper(r xhttp.RetryOptions, obs *CaduceusOutboundSender) http.RoundTripper {
 	return promhttp.RoundTripperFunc(xhttp.RetryTransactor(r, InstrumentOutboundDuration(obs.outboundMeasures.RequestDuration, obs.updateTransport())))
 }

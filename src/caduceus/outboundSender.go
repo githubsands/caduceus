@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"crypto/hmac"
 	"crypto/sha1"
-	"crypto/tls"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -374,6 +373,8 @@ func (obs *CaduceusOutboundSender) Queue(msg *wrp.Message) {
 	matcher := obs.matcher
 	obs.mutex.RUnlock()
 
+	fmt.Print("1")
+
 	now := time.Now()
 
 	var debugLog = logging.Debug(obs.logger)
@@ -577,6 +578,7 @@ func (obs *CaduceusOutboundSender) worker(id int) {
 					roundTripper := NewOutboundRoundTripper(retryOptions, obs)
 					resp, err := roundTripper.RoundTrip(req)
 					if nil != err {
+						fmt.Print(err)
 						// Report failure
 						obs.getCounter(obs.deliveryCounter, -1).With("event", event).Add(1.0)
 						obs.droppedNetworkErrCounter.Add(1.0)
@@ -660,6 +662,7 @@ func (obs *CaduceusOutboundSender) queueOverflow() {
 					req.Header.Set("X-Webpa-Signature", sig)
 				}
 
+				// TODO: add round tripper here
 				resp, err := obs.sender(req)
 				if nil != err {
 					// Failure
@@ -684,6 +687,10 @@ func (obs *CaduceusOutboundSender) queueOverflow() {
 }
 
 func (obs *CaduceusOutboundSender) updateTransport() *http.Transport {
+	return &http.Transport{}
+}
+
+/*
 	return &http.Transport{
 		TLSClientConfig:       &tls.Config{InsecureSkipVerify: true},
 		MaxIdleConnsPerHost:   0,
@@ -691,3 +698,4 @@ func (obs *CaduceusOutboundSender) updateTransport() *http.Transport {
 		IdleConnTimeout:       0,
 	}
 }
+*/
