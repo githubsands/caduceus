@@ -19,6 +19,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/Comcast/webpa-common/webhook"
 	"github.com/Comcast/webpa-common/wrp"
 	"github.com/go-kit/kit/log"
@@ -103,12 +104,17 @@ func simpleFactorySetup(trans *transport, cutOffPeriod time.Duration, matcher []
 	fakeQdepth.On("With", []string{"url", w.Config.URL}).Return(fakeQdepth)
 	fakeQdepth.On("Add", 1.0).Return().On("Add", -1.0).Return()
 
+	fakeDuration := new(mockHistogram)
+	fakeDuration.On("With", []string{"url", w.Config.URL}).Return(fakeDuration)
+	fakeDuration.On("Observe", 0.001).Return().On("Observe", -1.0).Return()
+
 	fakeRegistry := new(mockCaduceusMetricsRegistry)
 	fakeRegistry.On("NewCounter", DeliveryRetryCounter).Return(fakeDC)
 	fakeRegistry.On("NewCounter", DeliveryCounter).Return(fakeDC)
 	fakeRegistry.On("NewCounter", SlowConsumerCounter).Return(fakeSlow)
 	fakeRegistry.On("NewCounter", SlowConsumerDroppedMsgCounter).Return(fakeDroppedSlow)
 	fakeRegistry.On("NewGauge", OutgoingQueueDepth).Return(fakeQdepth)
+	fakeRegistry.On("NewHistogram", OutboundRequestDuration).Return(fakeDuration)
 
 	return &OutboundSenderFactory{
 		Listener:        w,
@@ -623,6 +629,7 @@ func TestOverflowValidFailureURLWithSecret(t *testing.T) {
 
 	var output bytes.Buffer
 	logger := getNewTestOutputLogger(&output)
+
 
 	trans := &transport{}
 	trans.fn = func(req *http.Request, count int) (resp *http.Response, err error) {

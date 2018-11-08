@@ -91,9 +91,6 @@ func Metrics() []xmetrics.Metric {
 	}
 }
 
-type OutboundMeasuring interface {
-}
-
 // OutboundMeasures holds different prometheus outbound measurements.
 //
 // Future prometheus measurements should be added here.

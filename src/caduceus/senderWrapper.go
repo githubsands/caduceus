@@ -104,7 +104,6 @@ func (swf SenderWrapperFactory) New() (sw SenderWrapper, err error) {
 		linger:              swf.Linger,
 		logger:              swf.Logger,
 		metricsRegistry:     swf.MetricsRegistry,
-		outboundMeasures:    swf.OutboundMeasuresFunc(swf.MetricsRegistry),
 	}
 
 	if swf.Linger <= 0 {
@@ -115,6 +114,9 @@ func (swf SenderWrapperFactory) New() (sw SenderWrapper, err error) {
 
 	caduceusSenderWrapper.senders = make(map[string]OutboundSender)
 	caduceusSenderWrapper.shutdown = make(chan struct{})
+
+	//TODO This is causing nil pointer derefence in test because SimpleFactorySetup (in DOES NOT USE swf's MetricsRegistry
+	caduceusSenderWrapper.outboundMeasures = NewOutboundMeasures(swf.MetricsRegistry)
 
 	caduceusSenderWrapper.wg.Add(1)
 	go undertaker(caduceusSenderWrapper)
