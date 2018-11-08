@@ -102,9 +102,10 @@ type OutboundMeasures struct {
 }
 
 // NewOutboundMeasuresFunc is used to create a OutboundMeasuresFunc type at the start of Sender Wrapper Factory
-func NewOutboundMeasuresFunc() OutboundMeasuresFunc {
-	f := NewOutboundMeasures
-	return f
+func NewOutboundMeasuresFunc(r CaduceusMetricsRegistry) OutboundMeasuresFunc {
+	return func(r CaduceusMetricsRegistry) OutboundMeasures {
+		return OutboundMeasures{RequestDuration: r.NewHistogramVec(OutboundRequestDuration).WithLabelValues()}
+	}
 }
 
 // OutboundMeasuresFunc is the function signature for NewOutboundMeasures. It is a attribute of SenderWrapperFactory and

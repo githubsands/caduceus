@@ -137,7 +137,7 @@ func caduceus(arguments []string) int {
 		DeliveryRetries:      caduceusConfig.Sender.DeliveryRetries,
 		DeliveryInterval:     caduceusConfig.Sender.DeliveryInterval,
 		MetricsRegistry:      metricsRegistry,
-		OutboundMeasuresFunc: NewOutboundMeasuresFunc(),
+		OutboundMeasuresFunc: NewOutboundMeasuresFunc(metricsRegistry),
 		Logger:               logger,
 		Transport:            tr,
 		Sender: (&http.Client{
