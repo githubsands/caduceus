@@ -131,11 +131,14 @@ type mockHistogram struct {
 	mock.Mock
 }
 
-// number of observations, sum of observed values, ---> allowing the calculation of the observed values.
-// is inherently a counter
-//
-// rate(http_request_duration_seconds_sum[5m])
-// rate(http_request_duration_seconds_count[5m])
+func (m *mockHistogram) Observe(value float64) {
+	m.Called(value)
+}
+
+func (m *mockHistogram) With(labelValues string) metrics.Histogram {
+	args := m.Called(labelValues)
+	return args.Get(0).(metrics.Histogram)
+}
 
 // mockCaduceusMetricsRegistry provides the mock implementation of the
 // CaduceusMetricsRegistry  object
