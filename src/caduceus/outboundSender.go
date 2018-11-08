@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"crypto/hmac"
 	"crypto/sha1"
+	"crypto/tls"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -579,6 +580,7 @@ func (obs *CaduceusOutboundSender) worker(id int) {
 					resp, err := roundTripper.RoundTrip(req)
 					if nil != err {
 						fmt.Print(err)
+						fmt.Printf("\n")
 						// Report failure
 						obs.getCounter(obs.deliveryCounter, -1).With("event", event).Add(1.0)
 						obs.droppedNetworkErrCounter.Add(1.0)
@@ -687,15 +689,10 @@ func (obs *CaduceusOutboundSender) queueOverflow() {
 }
 
 func (obs *CaduceusOutboundSender) updateTransport() *http.Transport {
-	return &http.Transport{}
-}
-
-/*
 	return &http.Transport{
 		TLSClientConfig:       &tls.Config{InsecureSkipVerify: true},
-		MaxIdleConnsPerHost:   0,
-		ResponseHeaderTimeout: 0,
-		IdleConnTimeout:       0,
+		MaxIdleConnsPerHost:   34,
+		ResponseHeaderTimeout: 5,
+		IdleConnTimeout:       100,
 	}
 }
-*/
